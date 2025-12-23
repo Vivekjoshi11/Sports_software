@@ -122,6 +122,15 @@ export default function BracketPage() {
     setWinners(prev => ({ ...prev, [matchKey]: player }));
   };
 
+  const resetMatch = (roundIndex: number, matchIndex: number) => {
+    const matchKey = `round${roundIndex}-match${matchIndex}`;
+    setWinners(prev => {
+      const newWinners = { ...prev };
+      delete newWinners[matchKey];
+      return newWinners;
+    });
+  };
+
   const handleRegenerate = () => {
     if (selectedGroupKey) {
       const group = groups.find(g => g.key === selectedGroupKey);
@@ -177,6 +186,16 @@ export default function BracketPage() {
               {round.map((match, matchIndex) => (
                 <div key={matchIndex} className="bg-gray-800 p-4 rounded-lg">
                   <div className="text-center mb-2">Match {matchIndex + 1}</div>
+                  {match.winner && (
+                    <div className="text-center mb-2">
+                      <button
+                        onClick={() => resetMatch(roundIndex, matchIndex)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs"
+                      >
+                        Reset Match
+                      </button>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <div className={`p-2 rounded ${match.winner?.id === match.player1.id ? 'bg-green-600' : 'bg-gray-700'}`}>
                       {match.player1.name || 'TBD'}
