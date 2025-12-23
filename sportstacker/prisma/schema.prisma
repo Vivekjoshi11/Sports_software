@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tournament {
+  id     String   @id @default(cuid())
+  name   String
+  sport  String
+  players Player[]
+}
+
+model Player {
+  id             String   @id @default(cuid())
+  name           String
+  gender         String   // "Boys" or "Girls"
+  ageCategory    String   // "U-14", "U-19", or "Open"
+  weightClass    String?
+  belt           String?
+  tournamentId   String
+  tournament     Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+}
