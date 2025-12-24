@@ -21,12 +21,17 @@ interface Group {
 interface Match {
   player1: Player;
   player2: Player;
+  winner?: Player;
 }
 
 // Helper function to generate single-elimination bracket
-function generateBracket(players: Player[]) {
-  // Shuffle players for blind draw
-  const shuffled = [...players].sort(() => Math.random() - 0.5);
+function generateBracket(players: Player[], winners: { [key: string]: Player }, seed: number) {
+  // Shuffle players using seed for consistency
+  const shuffled = [...players].sort((a, b) => {
+    const hashA = a.name.split('').reduce((h, c) => h * 31 + c.charCodeAt(0), seed);
+    const hashB = b.name.split('').reduce((h, c) => h * 31 + c.charCodeAt(0), seed);
+    return hashA - hashB;
+  });
 
   // Calculate next power of 2
   const numPlayers = shuffled.length;
@@ -38,16 +43,31 @@ function generateBracket(players: Player[]) {
     bracket.push({ id: 'bye', name: 'BYE' } as Player);
   }
 
-  // Generate matches (simplified - just first round)
-  const matches = [];
-  for (let i = 0; i < bracket.length; i += 2) {
-    matches.push({
-      player1: bracket[i],
-      player2: bracket[i + 1],
+  // Generate all rounds
+  const rounds: Match[][] = [];
+  let currentRound = [...bracket];
+
+  while (currentRound.length > 1) {
+    const roundMatches: Match[] = [];
+    for (let i = 0; i < currentRound.length; i += 2) {
+      const matchKey = `round${rounds.length}-match${i / 2}`;
+      const winner = winners[matchKey];
+      roundMatches.push({
+        player1: currentRound[i],
+        player2: currentRound[i + 1],
+        winner,
+      });
+    }
+    rounds.push(roundMatches);
+
+    // Prepare next round with winners or placeholders
+    currentRound = roundMatches.map((match, index) => {
+      const matchKey = `round${rounds.length - 1}-match${index}`;
+      return winners[matchKey] || ({ id: 'tbd', name: 'TBD' } as Player);
     });
   }
 
-  return matches;
+  return rounds;
 }
 
 async function getPlayers(tournamentId: string): Promise<Player[]> {
@@ -72,8 +92,9 @@ export default function BracketPage() {
   const params = useParams();
   const tournamentId = params.id as string;
   const [players, setPlayers] = useState<Player[]>([]);
-  const [selectedGroupKey, setSelectedGroupKey] = useState<string>('');
-  const [bracket, setBracket] = useState<Match[]>([]);
+  const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
+  const [winners, setWinners] = useState<{ [key: string]: Player }>({});
+  const [bracketKey, setBracketKey] = useState(0);
 
   useEffect(() => {
     getPlayers(tournamentId).then(setPlayers);
@@ -81,31 +102,36 @@ export default function BracketPage() {
 
   const groups = useMemo(() => groupPlayers(players), [players]);
 
-  useEffect(() => {
-    if (groups.length > 0 && !selectedGroupKey) {
-      setSelectedGroupKey(groups[0].key);
-    }
-  }, [groups, selectedGroupKey]);
+  const selectedGroupKeyDisplay = selectedGroupKey || (groups.length > 0 ? groups[0].key : '');
 
-  useEffect(() => {
-    if (selectedGroupKey) {
-      const group = groups.find(g => g.key === selectedGroupKey);
-      if (group) {
-        setBracket(generateBracket(group.players));
-      }
-    }
-  }, [selectedGroupKey, groups]);
+  const selectedGroup = useMemo(() => groups.find(g => g.key === selectedGroupKeyDisplay), [groups, selectedGroupKeyDisplay]);
+
+  const bracket = useMemo(() => selectedGroup ? generateBracket(selectedGroup.players, winners, bracketKey) : [], [selectedGroup, winners, bracketKey]);
+  
+
 
   const handleGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedGroupKey(e.target.value);
   };
 
+  const selectWinner = (roundIndex: number, matchIndex: number, player: Player) => {
+    const matchKey = `round${roundIndex}-match${matchIndex}`;
+    setWinners(prev => ({ ...prev, [matchKey]: player }));
+  };
+
+  const resetMatch = (roundIndex: number, matchIndex: number) => {
+    const matchKey = `round${roundIndex}-match${matchIndex}`;
+    setWinners(prev => {
+      const newWinners = { ...prev };
+      delete newWinners[matchKey];
+      return newWinners;
+    });
+  };
+
   const handleRegenerate = () => {
-    if (selectedGroupKey) {
-      const group = groups.find(g => g.key === selectedGroupKey);
-      if (group) {
-        setBracket(generateBracket(group.players));
-      }
+    if (selectedGroup) {
+      setWinners({});
+      setBracketKey(prev => prev + 1);
     }
   };
 
@@ -124,7 +150,7 @@ export default function BracketPage() {
       <div className="mb-8">
         <label className="block text-sm font-medium mb-2">Select Group:</label>
         <select
-          value={selectedGroupKey}
+          value={selectedGroupKeyDisplay}
           onChange={handleGroupChange}
           className="bg-gray-700 border border-gray-600 rounded-md px-3 py-2"
         >
@@ -146,23 +172,66 @@ export default function BracketPage() {
       </div>
 
       <div className="bracket-container">
-        <h2 className="text-xl font-semibold mb-4">{selectedGroupKey}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {bracket.map((match, index) => (
-            <div key={index} className="bg-gray-800 p-4 rounded-lg">
-              <div className="text-center mb-2">Match {index + 1}</div>
-              <div className="space-y-2">
-                <div className="bg-gray-700 p-2 rounded">
-                  {match.player1.name || 'TBD'}
+        <h2 className="text-xl font-semibold mb-4">{selectedGroupKeyDisplay}</h2>
+        {bracket.map((round, roundIndex) => (
+          <div key={roundIndex} className="mb-8">
+            <h3 className="text-lg font-medium mb-4">Round {roundIndex + 1}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {round.map((match, matchIndex) => (
+                <div key={matchIndex} className="bg-gray-800 p-4 rounded-lg">
+                  <div className="text-center mb-2">Match {matchIndex + 1}</div>
+                  {match.winner && (
+                    <div className="text-center mb-2">
+                      <button
+                        onClick={() => resetMatch(roundIndex, matchIndex)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs"
+                      >
+                        Reset Match
+                      </button>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <div className={`p-2 rounded ${match.winner?.id === match.player1.id ? 'bg-green-600' : 'bg-gray-700'}`}>
+                      {match.player1.name || 'TBD'}
+                      {match.player1.id !== 'bye' && match.player1.id !== 'tbd' && !match.winner && (
+                        <button
+                          onClick={() => selectWinner(roundIndex, matchIndex, match.player1)}
+                          className="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs"
+                        >
+                          Winner
+                        </button>
+                      )}
+                      {match.winner && match.winner.id === match.player1.id && (
+                        <span className="ml-2 text-yellow-300 font-bold text-xs">WINNER</span>
+                      )}
+                      {match.winner && match.winner.id !== match.player1.id && (
+                        <span className="ml-2 text-red-300 text-xs">Eliminated</span>
+                      )}
+                    </div>
+                    <div className="text-center">vs</div>
+                    <div className={`p-2 rounded ${match.winner?.id === match.player2?.id ? 'bg-green-600' : 'bg-gray-700'}`}>
+                      {match.player2?.name || 'TBD'}
+                      {match.player2 && match.player2.id !== 'bye' && match.player2.id !== 'tbd' && !match.winner && (
+                        <button
+                          onClick={() => selectWinner(roundIndex, matchIndex, match.player2)}
+                          className="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs"
+                        >
+                          Winner
+                        </button>
+                      )}
+                      {match.winner && match.winner.id === match.player2?.id && (
+                        <span className="ml-2 text-yellow-300 font-bold text-xs">WINNER</span>
+                      )}
+                      {match.winner && match.winner.id !== match.player2?.id && (
+                        <span className="ml-2 text-red-300 text-xs">Eliminated</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-center">vs</div>
-                <div className="bg-gray-700 p-2 rounded">
-                  {match.player2.name || 'TBD'}
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );

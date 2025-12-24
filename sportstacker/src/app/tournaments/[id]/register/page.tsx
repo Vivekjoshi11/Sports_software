@@ -21,7 +21,6 @@ type PlayerForm = z.infer<typeof playerSchema>;
 export default function RegisterPlayerPage() {
   const params = useParams();
   const tournamentId = params.id as string;
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const {
