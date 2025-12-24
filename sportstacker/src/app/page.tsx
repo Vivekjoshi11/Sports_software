@@ -24,9 +24,9 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-16 pb-20 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900">
+      <section className="pt-16 pb-20 bg-linear-to-r from-gray-900 via-gray-800 to-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-linear-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
             Manage Tournaments Like a Pro
           </h1>
           <p className="text-xl md:text-2xl mb-8 text-gray-300">
@@ -128,7 +128,7 @@ export default function Home() {
               <div className="p-6">
                 <h3 className="text-2xl font-semibold mb-2 text-white">More Coming Soon</h3>
                 <p className="text-gray-300">
-                  We're expanding to support more combat sports. Stay tuned for updates!
+                  We&apos;re expanding to support more combat sports. Stay tuned for updates!
                 </p>
               </div>
             </div>
