@@ -1,3 +1,5 @@
+// /* eslint-disable @typescript-eslint/no-unused-vars */
+// /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -24,9 +26,13 @@ interface Match {
 }
 
 // Helper function to generate single-elimination bracket
-function generateBracket(players: Player[], winners: { [key: string]: Player }) {
-  // Players are already shuffled if needed
-  const shuffled = [...players];
+function generateBracket(players: Player[], winners: { [key: string]: Player }, seed: number) {
+  // Shuffle players using seed for consistency
+  const shuffled = [...players].sort((a, b) => {
+    const hashA = a.name.split('').reduce((h, c) => h * 31 + c.charCodeAt(0), seed);
+    const hashB = b.name.split('').reduce((h, c) => h * 31 + c.charCodeAt(0), seed);
+    return hashA - hashB;
+  });
 
   // Calculate next power of 2
   const numPlayers = shuffled.length;
@@ -87,10 +93,9 @@ export default function BracketPage() {
   const params = useParams();
   const tournamentId = params.id as string;
   const [players, setPlayers] = useState<Player[]>([]);
-  const [selectedGroupKey, setSelectedGroupKey] = useState<string>('');
-  const [bracket, setBracket] = useState<Match[][]>([]);
+  const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
   const [winners, setWinners] = useState<{ [key: string]: Player }>({});
-  const [shuffledPlayers, setShuffledPlayers] = useState<Player[]>([]);
+  const [bracketKey, setBracketKey] = useState(0);
 
   useEffect(() => {
     getPlayers(tournamentId).then(setPlayers);
@@ -98,20 +103,13 @@ export default function BracketPage() {
 
   const groups = useMemo(() => groupPlayers(players), [players]);
 
-  useEffect(() => {
-    if (groups.length > 0 && !selectedGroupKey) {
-      setSelectedGroupKey(groups[0].key);
-    }
-  }, [groups, selectedGroupKey]);
+  const selectedGroupKeyDisplay = selectedGroupKey || (groups.length > 0 ? groups[0].key : '');
 
-  useEffect(() => {
-    if (selectedGroupKey) {
-      const group = groups.find(g => g.key === selectedGroupKey);
-      if (group) {
-        setBracket(generateBracket(group.players, winners));
-      }
-    }
-  }, [selectedGroupKey, groups, winners]);
+  const selectedGroup = useMemo(() => groups.find(g => g.key === selectedGroupKeyDisplay), [groups, selectedGroupKeyDisplay]);
+
+  const bracket = useMemo(() => selectedGroup ? generateBracket(selectedGroup.players, winners, bracketKey) : [], [selectedGroup, winners, bracketKey]);
+  
+
 
   const handleGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedGroupKey(e.target.value);
@@ -132,12 +130,9 @@ export default function BracketPage() {
   };
 
   const handleRegenerate = () => {
-    if (selectedGroupKey) {
-      const group = groups.find(g => g.key === selectedGroupKey);
-      if (group) {
-        setWinners({});
-        setShuffledPlayers([...group.players].sort(() => Math.random() - 0.5));
-      }
+    if (selectedGroup) {
+      setWinners({});
+      setBracketKey(prev => prev + 1);
     }
   };
 
@@ -156,7 +151,7 @@ export default function BracketPage() {
       <div className="mb-8">
         <label className="block text-sm font-medium mb-2">Select Group:</label>
         <select
-          value={selectedGroupKey}
+          value={selectedGroupKeyDisplay}
           onChange={handleGroupChange}
           className="bg-gray-700 border border-gray-600 rounded-md px-3 py-2"
         >
@@ -178,7 +173,7 @@ export default function BracketPage() {
       </div>
 
       <div className="bracket-container">
-        <h2 className="text-xl font-semibold mb-4">{selectedGroupKey}</h2>
+        <h2 className="text-xl font-semibold mb-4">{selectedGroupKeyDisplay}</h2>
         {bracket.map((round, roundIndex) => (
           <div key={roundIndex} className="mb-8">
             <h3 className="text-lg font-medium mb-4">Round {roundIndex + 1}</h3>

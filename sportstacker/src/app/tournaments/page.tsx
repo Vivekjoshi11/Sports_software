@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 interface Tournament {
   id: string;
   name: string;
@@ -8,7 +10,15 @@ interface Tournament {
 }
 
 export default async function TournamentsPage() {
-  const tournaments = await prisma.tournament.findMany();
+  let tournaments: Tournament[] = [];
+  if (process.env.DATABASE_URL) {
+    try {
+      tournaments = await prisma.tournament.findMany();
+    } catch (error) {
+      console.error('Database error:', error);
+      // tournaments remains empty
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
