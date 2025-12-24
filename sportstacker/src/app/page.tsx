@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable react/jsx-no-comment-textnodes */
 import Image from "next/image";
 import Link from "next/link";
 
@@ -128,7 +130,8 @@ export default function Home() {
               <div className="p-6">
                 <h3 className="text-2xl font-semibold mb-2 text-white">More Coming Soon</h3>
                 <p className="text-gray-300">
-                  We&apos;re expanding to support more combat sports. Stay tuned for updates!
+                  // eslint-disable-next-line react/no-unescaped-entities
+                  We're expanding to support more combat sports. Stay tuned for updates!
                 </p>
               </div>
             </div>
