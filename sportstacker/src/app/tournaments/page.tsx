@@ -11,9 +11,9 @@ interface Tournament {
 
 export default async function TournamentsPage() {
   let tournaments: Tournament[] = [];
-  if (process.env.DATABASE_URL) {
+  if (prisma) {
     try {
-      tournaments = await prisma.tournament.findMany();
+      tournaments = await prisma!.tournament.findMany();
     } catch (error) {
       console.error('Database error:', error);
       // tournaments remains empty
