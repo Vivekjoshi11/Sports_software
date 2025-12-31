@@ -3,8 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   console.log('API called');
-  const DATABASE_URL = "postgresql://postgres:Vivek%401123vivek@db.jjzrklsxpuznkagsqjxb.supabase.co:5432/postgres";
-  const prisma = new PrismaClient({ datasourceUrl: DATABASE_URL });
+  const prisma = new PrismaClient();
   try {
     const { name, sport } = await request.json();
     console.log('Data:', { name, sport });

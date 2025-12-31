@@ -6,8 +6,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const DATABASE_URL = "postgresql://postgres:Vivek%401123vivek@db.jjzrklsxpuznkagsqjxb.supabase.co:5432/postgres";
-  const prisma = new PrismaClient({ datasourceUrl: DATABASE_URL });
+  const prisma = new PrismaClient();
 
   try {
     const players = await prisma.player.findMany({
