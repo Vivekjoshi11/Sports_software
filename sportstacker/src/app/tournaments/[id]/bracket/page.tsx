@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
@@ -22,6 +23,11 @@ interface Match {
   player1: Player;
   player2: Player;
   winner?: Player;
+}
+
+interface Medalist {
+  player: Player;
+  medal: 'gold' | 'silver' | 'bronze';
 }
 
 // Helper function to generate single-elimination bracket
@@ -70,6 +76,55 @@ function generateBracket(players: Player[], winners: { [key: string]: Player }, 
   return rounds;
 }
 
+// Function to get medalists
+function getMedalists(bracket: Match[][], winners: { [key: string]: Player }): Medalist[] {
+  if (bracket.length === 0) return [];
+
+  const lastRound = bracket[bracket.length - 1];
+  if (lastRound.length !== 1 || !lastRound[0].winner) return [];
+
+  const finalMatch = lastRound[0];
+  const winner = finalMatch.winner!;
+  const finalist = finalMatch.player1.id === winner.id ? finalMatch.player2 : finalMatch.player1;
+
+  const medalists: Medalist[] = [
+    { player: winner, medal: 'gold' },
+    { player: finalist, medal: 'silver' },
+  ];
+
+  // Find bronze medalists: opponents in previous round
+  const prevRoundIndex = bracket.length - 2;
+  if (prevRoundIndex >= 0) {
+    const prevRound = bracket[prevRoundIndex];
+
+    // Opponent for winner
+    for (let i = 0; i < prevRound.length; i++) {
+      const match = prevRound[i];
+      if (match.winner && match.winner.id === winner.id) {
+        const opponent = match.player1.id === winner.id ? match.player2 : match.player1;
+        if (opponent.id !== 'bye' && opponent.id !== 'tbd') {
+          medalists.push({ player: opponent, medal: 'bronze' });
+        }
+        break;
+      }
+    }
+
+    // Opponent for finalist
+    for (let i = 0; i < prevRound.length; i++) {
+      const match = prevRound[i];
+      if (match.winner && match.winner.id === finalist.id) {
+        const opponent = match.player1.id === finalist.id ? match.player2 : match.player1;
+        if (opponent.id !== 'bye' && opponent.id !== 'tbd') {
+          medalists.push({ player: opponent, medal: 'bronze' });
+        }
+        break;
+      }
+    }
+  }
+
+  return medalists;
+}
+
 async function getPlayers(tournamentId: string): Promise<Player[]> {
   const response = await fetch(`/api/tournaments/${tournamentId}/players`);
   if (!response.ok) return [];
@@ -107,8 +162,8 @@ export default function BracketPage() {
   const selectedGroup = useMemo(() => groups.find(g => g.key === selectedGroupKeyDisplay), [groups, selectedGroupKeyDisplay]);
 
   const bracket = useMemo(() => selectedGroup ? generateBracket(selectedGroup.players, winners, bracketKey) : [], [selectedGroup, winners, bracketKey]);
-  
 
+  const medalists = useMemo(() => getMedalists(bracket, winners), [bracket, winners]);
 
   const handleGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedGroupKey(e.target.value);
@@ -169,6 +224,19 @@ export default function BracketPage() {
         >
           Regenerate Bracket
         </button>
+        {medalists.length > 0 && (
+          <div className="bg-gray-800 p-3 rounded-lg mt-4 max-w-xs">
+            <h3 className="text-sm font-semibold mb-2">Medalists</h3>
+            {medalists.map((m, i) => (
+              <div key={i} className="flex items-center mb-1 text-sm">
+                <span className={`mr-2 ${m.medal === 'gold' ? 'text-yellow-400' : m.medal === 'silver' ? 'text-gray-300' : 'text-amber-600'}`}>
+                  {m.medal === 'gold' ? '🥇' : m.medal === 'silver' ? '🥈' : '🥉'}
+                </span>
+                {m.player.name}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="bracket-container">
@@ -177,8 +245,14 @@ export default function BracketPage() {
           <div key={roundIndex} className="mb-8">
             <h3 className="text-lg font-medium mb-4">Round {roundIndex + 1}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {round.map((match, matchIndex) => (
-                <div key={matchIndex} className="bg-gray-800 p-4 rounded-lg">
+              {round.map((match, matchIndex) => {
+                // Skip BYE vs BYE and TBD vs TBD matches
+                if ((match.player1.id === 'bye' || match.player1.id === 'tbd') &&
+                    (!match.player2 || match.player2.id === 'bye' || match.player2.id === 'tbd')) {
+                  return null;
+                }
+                return (
+                  <div key={matchIndex} className="bg-gray-800 p-4 rounded-lg">
                   <div className="text-center mb-2">Match {matchIndex + 1}</div>
                   {match.winner && (
                     <div className="text-center mb-2">
@@ -228,7 +302,8 @@ export default function BracketPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}
