@@ -245,8 +245,14 @@ export default function BracketPage() {
           <div key={roundIndex} className="mb-8">
             <h3 className="text-lg font-medium mb-4">Round {roundIndex + 1}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {round.map((match, matchIndex) => (
-                <div key={matchIndex} className="bg-gray-800 p-4 rounded-lg">
+              {round.map((match, matchIndex) => {
+                // Skip BYE vs BYE and TBD vs TBD matches
+                if ((match.player1.id === 'bye' || match.player1.id === 'tbd') &&
+                    (!match.player2 || match.player2.id === 'bye' || match.player2.id === 'tbd')) {
+                  return null;
+                }
+                return (
+                  <div key={matchIndex} className="bg-gray-800 p-4 rounded-lg">
                   <div className="text-center mb-2">Match {matchIndex + 1}</div>
                   {match.winner && (
                     <div className="text-center mb-2">
@@ -296,7 +302,8 @@ export default function BracketPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}
