@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
+export async function GET() {
+  const prisma = new PrismaClient();
+  try {
+    const tournaments = await prisma.tournament.findMany();
+    return NextResponse.json(tournaments);
+  } catch (error) {
+    console.error('Error:', error);
+    return NextResponse.json({ error: 'Failed to fetch tournaments' }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 export async function POST(request: NextRequest) {
   console.log('API called');
   const prisma = new PrismaClient();
