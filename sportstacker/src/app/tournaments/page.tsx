@@ -1,5 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
+
+'use client';
 import Link from 'next/link';
-import { prisma } from '@/lib/prisma';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,16 +14,35 @@ interface Tournament {
   sport: string;
 }
 
-export default async function TournamentsPage() {
-  let tournaments: Tournament[] = [];
-  if (prisma) {
+export default function TournamentsPage() {
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    const loadTournaments = async () => {
+      try {
+        const res = await fetch('/api/tournaments');
+        const data = await res.json();
+        setTournaments(data);
+      } catch (error) {
+        console.error('Error fetching tournaments:', error);
+      }
+    };
+    void loadTournaments();
+  }, []);
+
+  const deleteTournament = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this tournament?')) return;
+    
     try {
-      tournaments = await prisma!.tournament.findMany();
+      const res = await fetch(`/api/tournaments/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setTournaments(tournaments.filter(t => t.id !== id));
+      }
     } catch (error) {
-      console.error('Database error:', error);
-      // tournaments remains empty
+      console.error('Error deleting tournament:', error);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -71,6 +95,12 @@ export default async function TournamentsPage() {
                   >
                     Bracket
                   </Link>
+                  <button
+                    onClick={() => deleteTournament(tournament.id)}
+                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition duration-300"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
             ))}
