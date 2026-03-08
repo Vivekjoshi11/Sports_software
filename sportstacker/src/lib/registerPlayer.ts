@@ -10,6 +10,7 @@ export async function registerPlayer(data: {
   belt?: string;
   tournamentId: string;
 }) {
+  console.log('Registering player:', data);
   const prisma = new PrismaClient();
 
   try {
@@ -18,12 +19,13 @@ export async function registerPlayer(data: {
         name: data.name,
         gender: data.gender,
         ageCategory: data.ageCategory,
-        weightClass: data.weightClass,
-        belt: data.belt,
+        weightClass: data.weightClass || null,
+        belt: data.belt || null,
         tournamentId: data.tournamentId,
       },
     });
 
+    console.log('Player registered successfully:', player);
     return { success: true, id: player.id };
   } catch (error) {
     console.error('Error registering player:', error);

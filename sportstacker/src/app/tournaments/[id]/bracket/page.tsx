@@ -39,8 +39,19 @@ function generateBracket(players: Player[], winners: { [key: string]: Player }, 
     return hashA - hashB;
   });
 
-  // Calculate next power of 2
   const numPlayers = shuffled.length;
+
+  // Handle single player case
+  if (numPlayers === 1) {
+    // Single player - show as automatic winner
+    return [[{
+      player1: shuffled[0],
+      player2: { id: 'bye', name: 'BYE' } as Player,
+      winner: shuffled[0], // Auto-win when only one player
+    }]];
+  }
+
+  // Calculate next power of 2
   const nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(numPlayers)));
 
   // Add byes
@@ -155,6 +166,15 @@ export default function BracketPage() {
     getPlayers(tournamentId).then(setPlayers);
   }, [tournamentId]);
 
+  // Auto-refresh when window gains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      getPlayers(tournamentId).then(setPlayers);
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [tournamentId]);
+
   const groups = useMemo(() => groupPlayers(players), [players]);
 
   const selectedGroupKeyDisplay = selectedGroupKey || (groups.length > 0 ? groups[0].key : '');
@@ -191,11 +211,22 @@ export default function BracketPage() {
   };
 
   if (players.length === 0) {
-    return <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-8">
+        <h1 className="text-3xl font-bold mb-8">Tournament Bracket</h1>
+        <div className="text-gray-400">Loading players...</div>
+        <div className="mt-4 text-sm text-gray-500">Tournament ID: {tournamentId}</div>
+      </div>
+    );
   }
 
   if (groups.length === 0) {
-    return <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">No players registered yet.</div>;
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-8">
+        <h1 className="text-3xl font-bold mb-8">Tournament Bracket</h1>
+        <div className="text-gray-400">No players registered yet. Players loaded: {players.length}</div>
+      </div>
+    );
   }
 
   return (
