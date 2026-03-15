@@ -12,6 +12,7 @@ model Tournament {
   name   String
   sport  String
   players Player[]
+  bracketResults BracketResult[]
 }
 
 model Player {
@@ -23,4 +24,15 @@ model Player {
   belt           String?
   tournamentId   String
   tournament     Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+}
+
+model BracketResult {
+  id           String   @id @default(cuid())
+  tournamentId String
+  groupKey     String
+  winners      Json     // Store winners as JSON
+  isFinalized  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 }
