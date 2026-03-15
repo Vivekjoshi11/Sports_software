@@ -203,12 +203,211 @@ export default function BracketPage() {
     });
   };
 
-  const handleRegenerate = () => {
-    if (selectedGroup) {
-      setWinners({});
-      setBracketKey(prev => prev + 1);
+    const handleRegenerate = () => {
+      if (selectedGroup) {
+        setWinners({});
+        setBracketKey(prev => prev + 1);
+        setIsFinalized(false);
+        // Save regenerated state to sessionStorage
+        try {
+          const regeneratedData = {
+            winners: {},
+            isFinalized: false,
+            regeneratedAt: new Date().getTime()
+          };
+          sessionStorage.setItem(
+            `bracket_regenerated_${tournamentId}_${selectedGroupKeyDisplay}`,
+            JSON.stringify(regeneratedData)
+          );
+        } catch (sessionStorageError) {
+          console.warn('Failed to save regenerated bracket state to sessionStorage:', sessionStorageError);
+          // Continue anyway - the state is still updated locally
+        }
+      }
+    };
+
+  const exportToJSON = () => {
+    const data = {
+      tournamentId,
+      group: selectedGroupKeyDisplay,
+      players: selectedGroup?.players,
+      winners,
+      medalists,
+      exportDate: new Date().toISOString(),
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tournament-${tournamentId}-results.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportResults = () => {
+    // Create HTML content for PDF
+    let html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Tournament Results</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { text-align: center; }
+          .medalists { margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 8px; }
+          .medal { display: flex; align-items: center; margin: 10px 0; font-size: 18px; }
+          .medal-icon { font-size: 24px; margin-right: 10px; }
+          .gold { color: #FFD700; }
+          .silver { color: #C0C0C0; }
+          .bronze { color: #CD7F32; }
+          .matches { margin-top: 20px; }
+          .round { margin-bottom: 20px; }
+          .round-title { font-weight: bold; font-size: 16px; margin-bottom: 10px; }
+          .match { padding: 8px; margin: 5px 0; background: #eee; border-radius: 4px; }
+          .winner { font-weight: bold; color: green; }
+        </style>
+      </head>
+      <body>
+        <h1>Tournament Bracket Results</h1>
+    `;
+    
+    // Medalists
+    if (medalists.length > 0) {
+      html += `<div class="medalists"><h2>Medalists</h2>`;
+      medalists.forEach(m => {
+        const medalClass = m.medal;
+        const medalEmoji = m.medal === 'gold' ? '🥇' : m.medal === 'silver' ? '🥈' : '🥉';
+        html += `<div class="medal ${medalClass}"><span class="medal-icon">${medalEmoji}</span><strong>${m.medal.toUpperCase()}:</strong> ${m.player.name}</div>`;
+      });
+      html += `</div>`;
+    }
+    
+    // Matches
+    html += `<div class="matches"><h2>Match Results</h2>`;
+    bracket.forEach((round, roundIndex) => {
+      html += `<div class="round"><div class="round-title">Round ${roundIndex + 1}</div>`;
+      round.forEach((match, matchIndex) => {
+        if (match.player1.id === 'bye' || match.player2?.id === 'bye') {
+          html += `<div class="match">Match ${matchIndex + 1}: ${match.player1.name} - BYE</div>`;
+        } else if (match.winner) {
+          const loser = match.winner.id === match.player1.id ? match.player2?.name : match.player1.name;
+          html += `<div class="match">Match ${matchIndex + 1}: ${match.player1.name} vs ${match.player2?.name || 'TBD'}, <span class="winner">Winner: ${match.winner.name}</span></div>`;
+        } else {
+          html += `<div class="match">Match ${matchIndex + 1}: ${match.player1.name} vs ${match.player2?.name || 'TBD'} - Not Played</div>`;
+        }
+      });
+      html += `</div>`;
+    });
+    html += `</div></body></html>`;
+    
+    // Open in new window for printing
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.onload = () => {
+        printWindow.print();
+      };
     }
   };
+
+  const printBracket = () => {
+    window.print();
+  };
+
+  const [isFinalized, setIsFinalized] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+   // Load saved bracket on mount
+    useEffect(() => {
+      async function loadSavedBracket() {
+        try {
+          // Check if there's a regenerated state in sessionStorage
+          const regeneratedKey = `bracket_regenerated_${tournamentId}_${selectedGroupKeyDisplay}`;
+          const regeneratedData = sessionStorage.getItem(regeneratedKey);
+          
+          if (regeneratedData) {
+            const parsed = JSON.parse(regeneratedData);
+            setWinners(parsed.winners);
+            setIsFinalized(parsed.isFinalized);
+            // Clear the regenerated flag after loading
+            sessionStorage.removeItem(regeneratedKey);
+            return;
+          }
+          
+          const res = await fetch(`/api/tournaments/${tournamentId}/bracket?group=${encodeURIComponent(selectedGroupKeyDisplay)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.length > 0) {
+              const saved = data[0];
+              if (saved.winners) {
+                setWinners(saved.winners as { [key: string]: Player });
+              } else {
+                // No winners saved, reset to empty
+                setWinners({});
+              }
+              setIsFinalized(saved.isFinalized);
+            } else {
+              // No saved data for this group, reset to default state
+              setWinners({});
+              setIsFinalized(false);
+            }
+          }
+        } catch (err) {
+          console.error('Error loading saved bracket:', err);
+          // On error, reset to default state
+          setWinners({});
+          setIsFinalized(false);
+        }
+      }
+      loadSavedBracket();
+    }, [tournamentId, selectedGroupKeyDisplay]);
+
+   const saveBracket = async () => {
+     setIsSaving(true);
+     try {
+       const res = await fetch(`/api/tournaments/${tournamentId}/bracket`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+           groupKey: selectedGroupKeyDisplay,
+           winners,
+           isFinalized: true,
+         }),
+       });
+       if (res.ok) {
+         setIsFinalized(true);
+         alert('Bracket saved successfully!');
+       } else {
+         alert('Failed to save bracket');
+       }
+     } catch (err) {
+       console.error('Error saving bracket:', err);
+       alert('Error saving bracket');
+     }
+     setIsSaving(false);
+   };
+
+   const unsaveBracket = async () => {
+     setIsSaving(true);
+     try {
+       const res = await fetch(`/api/tournaments/${tournamentId}/bracket?group=${encodeURIComponent(selectedGroupKeyDisplay)}`, {
+         method: 'DELETE',
+       });
+       if (res.ok) {
+         setWinners({});
+         setIsFinalized(false);
+         alert('Bracket unsaved successfully!');
+       } else {
+         alert('Failed to unsave bracket');
+       }
+     } catch (err) {
+       console.error('Error unsaving bracket:', err);
+       alert('Error unsaving bracket');
+     }
+     setIsSaving(false);
+   };
 
   if (players.length === 0) {
     return (
@@ -248,13 +447,61 @@ export default function BracketPage() {
         </select>
       </div>
 
-      <div className="mb-8">
+       <div className="mb-8 flex flex-wrap gap-4">
+         <button
+           onClick={handleRegenerate}
+           disabled={!selectedGroup}
+           className={`bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md ${!selectedGroup ? 'opacity-50' : ''}`}
+         >
+           Regenerate Bracket
+         </button>
         <button
-          onClick={handleRegenerate}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+          onClick={exportToJSON}
+          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md"
         >
-          Regenerate Bracket
+          Export JSON
         </button>
+        <button
+          onClick={printBracket}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
+        >
+          Print / Save PDF
+        </button>
+        <button
+          onClick={exportResults}
+          className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md"
+        >
+          Export Results
+        </button>
+         {!isSaving && !isFinalized && (
+           <button
+             onClick={saveBracket}
+             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md"
+           >
+             Save Final Bracket
+           </button>
+         )}
+         {!isSaving && isFinalized && (
+           <>
+             <button
+               onClick={unsaveBracket}
+               className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md"
+             >
+               Unsave Bracket
+             </button>
+             <span className="bg-green-600 text-white px-4 py-2 rounded-md ml-2">
+               ✓ Bracket Saved
+             </span>
+           </>
+         )}
+         {isSaving && (
+           <button
+             disabled
+             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md"
+           >
+             Saving...
+           </button>
+         )}
         {medalists.length > 0 && (
           <div className="bg-gray-800 p-3 rounded-lg mt-4 max-w-xs">
             <h3 className="text-sm font-semibold mb-2">Medalists</h3>
