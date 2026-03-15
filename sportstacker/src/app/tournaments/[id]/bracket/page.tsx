@@ -389,25 +389,25 @@ export default function BracketPage() {
      setIsSaving(false);
    };
 
-   const unsaveBracket = async () => {
-     setIsSaving(true);
-     try {
-       const res = await fetch(`/api/tournaments/${tournamentId}/bracket?group=${encodeURIComponent(selectedGroupKeyDisplay)}`, {
-         method: 'DELETE',
-       });
-       if (res.ok) {
-         setWinners({});
-         setIsFinalized(false);
-         alert('Bracket unsaved successfully!');
-       } else {
-         alert('Failed to unsave bracket');
-       }
-     } catch (err) {
-       console.error('Error unsaving bracket:', err);
-       alert('Error unsaving bracket');
-     }
-     setIsSaving(false);
-   };
+    const unsaveBracket = async () => {
+      setIsSaving(true);
+      try {
+        const res = await fetch(`/api/tournaments/${tournamentId}/bracket?group=${encodeURIComponent(selectedGroupKeyDisplay)}`, {
+          method: 'DELETE',
+        });
+        if (res.ok) {
+          // Keep current winners but mark as unsaved
+          setIsFinalized(false);
+          alert('Bracket unsaved successfully!');
+        } else {
+          alert('Failed to unsave bracket');
+        }
+      } catch (err) {
+        console.error('Error unsaving bracket:', err);
+        alert('Error unsaving bracket');
+      }
+      setIsSaving(false);
+    };
 
   if (players.length === 0) {
     return (
