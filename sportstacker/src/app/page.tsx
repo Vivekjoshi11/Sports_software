@@ -1,6 +1,5 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable react/jsx-no-comment-textnodes */
-import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {
@@ -52,13 +51,9 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Taekwondo */}
             <div className="bg-gray-700 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-105">
-              <Image
-                src="https://images.unsplash.com/photo-1551698618-1dfe5d97d256?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
-                alt="Taekwondo action shot"
-                width={400}
-                height={250}
-                className="w-full h-48 object-cover"
-              />
+              <div className="w-full h-48 bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <span className="text-white text-4xl">🥋</span>
+              </div>
               <div className="p-6">
                 <h3 className="text-2xl font-semibold mb-2 text-white">Taekwondo</h3>
                 <p className="text-gray-300">
@@ -69,13 +64,9 @@ export default function Home() {
 
             {/* Karate */}
             <div className="bg-gray-700 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-105">
-              <Image
-                src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
-                alt="Karate action shot"
-                width={400}
-                height={250}
-                className="w-full h-48 object-cover"
-              />
+              <div className="w-full h-48 bg-linear-to-br from-red-500 to-orange-500 flex items-center justify-center">
+                <span className="text-white text-4xl">🥋</span>
+              </div>
               <div className="p-6">
                 <h3 className="text-2xl font-semibold mb-2 text-white">Karate</h3>
                 <p className="text-gray-300">
@@ -86,13 +77,9 @@ export default function Home() {
 
             {/* Judo */}
             <div className="bg-gray-700 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-105">
-              <Image
-                src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
-                alt="Judo action shot"
-                width={400}
-                height={250}
-                className="w-full h-48 object-cover"
-              />
+              <div className="w-full h-48 bg-linear-to-br from-green-500 to-blue-500 flex items-center justify-center">
+                <span className="text-white text-4xl">🥋</span>
+              </div>
               <div className="p-6">
                 <h3 className="text-2xl font-semibold mb-2 text-white">Judo</h3>
                 <p className="text-gray-300">
@@ -103,13 +90,9 @@ export default function Home() {
 
             {/* Boxing */}
             <div className="bg-gray-700 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-105">
-              <Image
-                src="https://images.unsplash.com/photo-1544717297-fa95b6ee9643?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
-                alt="Boxing action shot"
-                width={400}
-                height={250}
-                className="w-full h-48 object-cover"
-              />
+              <div className="w-full h-48 bg-linear-to-br from-gray-700 to-gray-900 flex items-center justify-center">
+                <span className="text-white text-4xl">🥊</span>
+              </div>
               <div className="p-6">
                 <h3 className="text-2xl font-semibold mb-2 text-white">Boxing</h3>
                 <p className="text-gray-300">
@@ -120,13 +103,9 @@ export default function Home() {
 
             {/* More Coming Soon */}
             <div className="bg-gray-700 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-105">
-              <Image
-                src="https://images.unsplash.com/photo-1574623452334-1e0ac2b3ccb4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
-                alt="More sports coming soon"
-                width={400}
-                height={250}
-                className="w-full h-48 object-cover"
-              />
+              <div className="w-full h-48 bg-linear-to-br from-yellow-500 to-red-500 flex items-center justify-center">
+                <span className="text-white text-4xl">🚀</span>
+              </div>
               <div className="p-6">
                 <h3 className="text-2xl font-semibold mb-2 text-white">More Coming Soon</h3>
                 <p className="text-gray-300">
@@ -142,7 +121,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-gray-900 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-gray-400">&copy; 2023 SportStacker. All rights reserved.</p>
+          <p className="text-gray-400">&copy; 2026 SportStacker. All rights reserved.</p>
         </div>
       </footer>
     </div>
