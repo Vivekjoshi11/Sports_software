@@ -1,8 +1,35 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable react/jsx-no-comment-textnodes */
+'use client';
+
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (session) {
+      router.push('/tournaments');
+    }
+  }, [session, status, router]);
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
+  if (session) {
+    return null; // Will redirect
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Fixed Navbar */}
@@ -13,13 +40,10 @@ export default function Home() {
               <h1 className="text-2xl font-bold text-white">SportStacker</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition duration-300">
-                Log In
-              </button>
-              <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition duration-300">
-                Sign Up
-              </button>
-            </div>
+               <Link href="/login" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition duration-300">
+                 Log In
+               </Link>
+             </div>
           </div>
         </div>
       </nav>

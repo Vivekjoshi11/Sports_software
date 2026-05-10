@@ -4,6 +4,8 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
+import { useSession, signOut } from 'next-auth/react';
+import Link from 'next/link';
 
 interface Player {
   id: string;
@@ -157,14 +159,29 @@ function groupPlayers(players: Player[]): Group[] {
 export default function BracketPage() {
   const params = useParams();
   const tournamentId = params.id as string;
+  const { data: session } = useSession();
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
   const [winners, setWinners] = useState<{ [key: string]: Player }>({});
   const [bracketKey, setBracketKey] = useState(0);
+  const [assignedGroups, setAssignedGroups] = useState<string[]>([]);
 
   useEffect(() => {
     getPlayers(tournamentId).then(setPlayers);
   }, [tournamentId]);
+
+  useEffect(() => {
+    if (session?.user?.role === 'OFFICIAL') {
+      // Fetch assigned groups for OFFICIAL
+      fetch(`/api/tournaments/${tournamentId}/officials/${session.user.id}`)
+        .then(res => res.json())
+        .then(data => setAssignedGroups(data.groupKeys || []))
+        .catch(() => setAssignedGroups([]));
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAssignedGroups([]);
+    }
+  }, [session, tournamentId]);
 
   // Auto-refresh when window gains focus
   useEffect(() => {
@@ -175,7 +192,13 @@ export default function BracketPage() {
     return () => window.removeEventListener('focus', handleFocus);
   }, [tournamentId]);
 
-  const groups = useMemo(() => groupPlayers(players), [players]);
+  const allGroups = useMemo(() => groupPlayers(players), [players]);
+  const groups = useMemo(() => {
+    if (session?.user?.role === 'OFFICIAL' && assignedGroups.length > 0) {
+      return allGroups.filter(g => assignedGroups.includes(g.key));
+    }
+    return allGroups;
+  }, [allGroups, session?.user?.role, assignedGroups]);
 
   const selectedGroupKeyDisplay = selectedGroupKey || (groups.length > 0 ? groups[0].key : '');
 
@@ -430,7 +453,23 @@ export default function BracketPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
-      <h1 className="text-3xl font-bold mb-8">Tournament Bracket</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Tournament Bracket</h1>
+        <div className="flex items-center gap-4">
+          <Link
+            href={`/tournaments/${tournamentId}`}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md transition duration-300"
+          >
+            Back to Tournament
+          </Link>
+          <button
+            onClick={() => signOut({ callbackUrl: '/' })}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition duration-300"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
 
       <div className="mb-8">
         <label className="block text-sm font-medium mb-2">Select Group:</label>
@@ -445,34 +484,43 @@ export default function BracketPage() {
             </option>
           ))}
         </select>
+        {session?.user?.role === 'OFFICIAL' && (
+          <div className="mt-2 text-sm text-gray-400">
+            Official: {session.user.name}
+          </div>
+        )}
       </div>
 
        <div className="mb-8 flex flex-wrap gap-4">
-         <button
-           onClick={handleRegenerate}
-           disabled={!selectedGroup}
-           className={`bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md ${!selectedGroup ? 'opacity-50' : ''}`}
-         >
-           Regenerate Bracket
-         </button>
-        <button
-          onClick={exportToJSON}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md"
-        >
-          Export JSON
-        </button>
-        <button
-          onClick={printBracket}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
-        >
-          Print / Save PDF
-        </button>
-        <button
-          onClick={exportResults}
-          className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md"
-        >
-          Export Results
-        </button>
+         {session?.user?.role !== 'OFFICIAL' && (
+           <>
+             <button
+               onClick={handleRegenerate}
+               disabled={!selectedGroup}
+               className={`bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md ${!selectedGroup ? 'opacity-50' : ''}`}
+             >
+               Regenerate Bracket
+             </button>
+             <button
+               onClick={exportToJSON}
+               className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md"
+             >
+               Export JSON
+             </button>
+             <button
+               onClick={printBracket}
+               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
+             >
+               Print / Save PDF
+             </button>
+             <button
+               onClick={exportResults}
+               className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md"
+             >
+               Export Results
+             </button>
+           </>
+         )}
          {!isSaving && !isFinalized && (
            <button
              onClick={saveBracket}
