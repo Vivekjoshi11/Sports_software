@@ -9,7 +9,7 @@ export async function GET() {
   }
 
   try {
-    let tournaments;
+    let tournaments: Awaited<ReturnType<typeof prisma.tournament.findMany>>;
     if (session.user.role === 'SUPERADMIN') {
       tournaments = await prisma.tournament.findMany();
     } else if (session.user.role === 'TOURNAMENT_ADMIN') {

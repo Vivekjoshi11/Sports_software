@@ -4,12 +4,13 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function createTournament(data: { name: string; sport: string }) {
+export async function createTournament(data: { name: string; sport: string; ownerId: string }) {
   try {
     const tournament = await prisma.tournament.create({
       data: {
         name: data.name,
         sport: data.sport,
+        ownerId: data.ownerId,
       },
     });
 
