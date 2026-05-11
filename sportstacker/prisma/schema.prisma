@@ -7,12 +7,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  SUPERADMIN
+  TOURNAMENT_ADMIN
+  OFFICIAL
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(OFFICIAL)
+  createdAt DateTime @default(now())
+  tournaments Tournament[] // owned tournaments
+  tournamentOfficials TournamentOfficial[]
+  auditLogs AuditLog[]
+}
+
 model Tournament {
   id     String   @id @default(cuid())
   name   String
   sport  String
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id])
   players Player[]
   bracketResults BracketResult[]
+  officials TournamentOfficial[]
 }
 
 model Player {
@@ -35,4 +56,28 @@ model BracketResult {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+}
+
+model TournamentOfficial {
+  id           String   @id @default(cuid())
+  userId       String
+  tournamentId String
+  groupKeys    String[] // array of groupKey strings
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tournamentId])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String
+  userName     String
+  role         Role
+  action       String
+  tournamentId String?
+  groupKey     String?
+  details      Json?    // additional details as JSON
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

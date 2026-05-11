@@ -5,6 +5,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,7 @@ interface Tournament {
 export default function TournamentsPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const router = useRouter();
+  const { data: session } = useSession();
 
   useEffect(() => {
     const loadTournaments = async () => {
@@ -33,7 +35,7 @@ export default function TournamentsPage() {
 
   const deleteTournament = async (id: string) => {
     if (!confirm('Are you sure you want to delete this tournament?')) return;
-    
+
     try {
       const res = await fetch(`/api/tournaments/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -44,28 +46,59 @@ export default function TournamentsPage() {
     }
   };
 
+  const canCreate = session?.user?.role === 'TOURNAMENT_ADMIN' || session?.user?.role === 'SUPERADMIN';
+  const canDelete = canCreate;
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Tournaments</h1>
-          <Link
-            href="/tournaments/new"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition duration-300"
-          >
-            Create New Tournament
-          </Link>
+          <div className="flex items-center gap-4">
+            {session?.user?.role === 'SUPERADMIN' && (
+              <Link
+                href="/admin"
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition duration-300"
+              >
+                Admin Dashboard
+              </Link>
+            )}
+            {(session?.user?.role === 'SUPERADMIN' || session?.user?.role === 'TOURNAMENT_ADMIN') && (
+              <Link
+                href="/admin/officials"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md transition duration-300"
+              >
+                Manage Officials
+              </Link>
+            )}
+            {canCreate && (
+              <Link
+                href="/tournaments/new"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition duration-300"
+              >
+                Create New Tournament
+              </Link>
+            )}
+            <button
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition duration-300"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         {tournaments.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-400 text-lg">No tournaments found.</p>
-            <Link
-              href="/tournaments/new"
-              className="text-blue-400 hover:text-blue-300 mt-4 inline-block"
-            >
-              Create your first tournament
-            </Link>
+            {canCreate && (
+              <Link
+                href="/tournaments/new"
+                className="text-blue-400 hover:text-blue-300 mt-4 inline-block"
+              >
+                Create your first tournament
+              </Link>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -95,12 +128,14 @@ export default function TournamentsPage() {
                   >
                     Bracket
                   </Link>
-                  <button
-                    onClick={() => deleteTournament(tournament.id)}
-                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition duration-300"
-                  >
-                    Delete
-                  </button>
+                  {canDelete && (
+                    <button
+                      onClick={() => deleteTournament(tournament.id)}
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition duration-300"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

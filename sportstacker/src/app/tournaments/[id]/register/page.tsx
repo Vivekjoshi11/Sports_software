@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useParams, useRouter } from 'next/navigation';
 import { useTransition, useState } from 'react';
+import { useSession, signOut } from 'next-auth/react';
+import Link from 'next/link';
 import { registerPlayer } from '@/lib/registerPlayer';
 
 const playerSchema = z.object({
@@ -158,9 +160,28 @@ export default function RegisterPlayerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-      <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Register Player</h1>
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Register Players</h1>
+          <div className="flex items-center gap-4">
+            <Link
+              href={`/tournaments/${tournamentId}`}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md transition duration-300"
+            >
+              Back to Tournament
+            </Link>
+            <button
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition duration-300"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-gray-800 p-8 rounded-lg shadow-lg">
+          <h2 className="text-2xl font-bold mb-6 text-center">Register Player</h2>
         
         <div className="flex mb-6 bg-gray-700 rounded-lg p-1">
           <button
@@ -343,6 +364,7 @@ export default function RegisterPlayerPage() {
           </button>
         </div>
         )}
+        </div>
       </div>
     </div>
   );
